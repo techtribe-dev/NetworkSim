@@ -13,14 +13,18 @@ import java.io.Serializable;
 //client initiate the comm with DHCPDISCOVER message (req latest IP offered )
 public class DhcpDiscover implements Serializable {
     private IPv4 tmpIP;
+    private String MAC;
     
-    public DhcpDiscover(){
+    public DhcpDiscover(String mac){
         tmpIP = null;
+        MAC = mac;
     }
     
-    public DhcpDiscover(IPv4 ip){
+    public DhcpDiscover(IPv4 ip, String mac){
         tmpIP = ip;
+        MAC = mac;
     }
     
     public IPv4 getIP(){ return tmpIP; }
+    public String getMAC() { return MAC; }
 }
