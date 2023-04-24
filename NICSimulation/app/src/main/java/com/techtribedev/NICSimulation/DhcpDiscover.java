@@ -14,6 +14,7 @@ import java.io.Serializable;
 public class DhcpDiscover implements Serializable {
     private IPv4 tmpIP;
     private String MAC;
+    //String MAC;
     
     public DhcpDiscover(String mac){
         tmpIP = null;
@@ -26,5 +27,9 @@ public class DhcpDiscover implements Serializable {
     }
     
     public IPv4 getIP(){ return tmpIP; }
-    public String getMAC() { return MAC; }
+
+
+    public String getClientMac() {
+        return MAC;
+    }
 }

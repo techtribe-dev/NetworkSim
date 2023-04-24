@@ -5,8 +5,10 @@
 package com.techtribedev.NICSimulation;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
@@ -23,21 +25,24 @@ import java.util.logging.Logger;
  * @author asimion
  */
 public class DhcpServer extends Thread {
-    private final Integer srcPORT = 68;
-    private final Integer destPORT = 67;
-    private final DatagramSocket srcSock;
-    private final DatagramSocket destSock;
+    private  short[] mSubnetmask;
+    private IPv4  mLanIp;
+    private final Integer rxPORT = 68;
+    private final Integer txPORT = 67;
+    private final DatagramSocket rxSock;
+    private final DatagramSocket txSock;
     private ByteArrayInputStream bis;
     private ObjectInputStream ois;
+    private ByteArrayOutputStream bos ;
+    private ObjectOutputStream oos;
     private boolean running ;
     private  HashMap<String,IPv4> leasesTable;
     private  Map<String, Boolean> ipPool;
-    private  short[] mSubnetmask;
     private byte[] buff = new byte[1024];
     
-    public DhcpServer(short[] subnetmask, short[] ipstart, short[] ipstop) throws SocketException{
-        srcSock = new DatagramSocket(srcPORT);
-        destSock = new DatagramSocket(destPORT);
+    public DhcpServer(short[] subnetmask, short[] ipstart, short[] ipstop) throws SocketException, IOException{
+        rxSock = new DatagramSocket(rxPORT);
+        txSock = new DatagramSocket(txPORT);
         leasesTable = new HashMap();
         //verifca daca ipstart si ipstop sunt din acelsi subnet
         ipPool = new TreeMap();
@@ -46,6 +51,12 @@ public class DhcpServer extends Thread {
             ipPool.put(toString(newIp), true);//true inseamna liber de utilizat
         }
         mSubnetmask = subnetmask;
+        
+        //pentru serializare si deserializare
+        bis = new ByteArrayInputStream(buff);
+        ois = new ObjectInputStream(bis);
+        bos = new ByteArrayOutputStream();
+        oos = new ObjectOutputStream(bos);
     }
     
     private String toString(short[] X){
@@ -103,41 +114,60 @@ public class DhcpServer extends Thread {
     
     public void run(){
         running = true;
-        
         while(running){
-            
-            
             DatagramPacket packet = new DatagramPacket(buff, buff.length);
             try {
                 //Citeste de pe PORTUL 68 de la client (DHCPDISCOVER, DHCPREQUEST)
-                srcSock.receive(packet);
-                bis = new ByteArrayInputStream(buff);
-                ois = new ObjectInputStream(bis);
-                Object deserializedObject = ois.readObject();
-                          
+                rxSock.receive(packet);
+                Object deserializedObject = ois.readObject(); 
+                //IPv4 allocatedIP  = null;
+                IPv4 validIP = null;
                 if (deserializedObject instanceof DhcpDiscover ) {
                     DhcpDiscover discovered = (DhcpDiscover) deserializedObject;
                     // genereaza DHPCPOFFER
+                    DhcpOffer dhcpmessage = null;
                     if(discovered.getIP() != null){
                         IPv4 dip = discovered.getIP();
                         boolean isInLeases = checkLeasesTable(dip);
                         if(isInLeases){
                             //DHCPOFFER CU IP valid;
-                            IPv4 validIP = findFirstIPValid();
+                            validIP = findFirstIPValid();
+                            
+                            dhcpmessage = new DhcpOffer(discovered.getClientMac(), validIP, mLanIp);
                            
-                           // DhcpOffer dhcpmessage = new DhcpOffer();
                         }else{
-                            //DHCPOFFER cu IP-ul cerut de client
+                            validIP = dip;
+                            //DHCPOFFER cu IP-ul cerut de clientS
+                            dhcpmessage = new DhcpOffer(discovered.getClientMac(), dip, mLanIp);
                         }
                     }
-                    
+                      // Serializarea obiectului în fluxul de bytes
+                      oos.writeObject(dhcpmessage);
+                      oos.flush();
+                      buff = bos.toByteArray();
+
                      // send DHCPOFFER pe port 67 
+                     DatagramPacket sendPacketOffer = new DatagramPacket(buff, buff.length, packet.getAddress(), packet.getPort());
+                     txSock.send(sendPacketOffer);
                 }else if(deserializedObject instanceof DhcpRequest){
                     //inainte e ACK OK -> pune in leasesTable ce s-a oferit;marcheaza in ipPool ca acel ip e folosit
-                    // genereaza DHCPACK 
+                    if(validIP != null){
+                        leasesTable.put(validIP.toStringIP(), validIP);
+                        ipPool.put(validIP.toStringIP() , false);
+                    }else{
+                        System.err.println("validIP=NULL, DEBUG!");
+                    }
+                    // genereaza DHCPACK
+                    DhcpAck dhcpmessage = new DhcpAck();
+                    //Serializarea obiectului în fluxul de bytes
+                    oos.writeObject(dhcpmessage);
+                    oos.flush();
+                    buff = bos.toByteArray();
                     // send pe portul 67
+                    DatagramPacket sendPacketAck = new DatagramPacket(buff, buff.length, packet.getAddress(), packet.getPort());
+                    txSock.send(sendPacketAck);
                 }
-                
+                //TODO: handle dhcp decline (mai tarziu) (trebuie implementare ARP
             } catch (IOException ex) {
                 Logger.getLogger(DhcpServer.class.getName()).log(Level.SEVERE, null, ex);
             } catch (ClassNotFoundException ex) {
@@ -147,4 +177,6 @@ public class DhcpServer extends Thread {
         }
         
     }
+    
+    //TODO: "destructor" unde inchizi ti bis, ois, bos, oos 
 }
