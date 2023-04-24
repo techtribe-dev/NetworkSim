@@ -27,10 +27,10 @@ import java.util.logging.Logger;
 public class DhcpServer extends Thread {
     private  short[] mSubnetmask;
     private IPv4  mLanIp;
-    private final Integer rxPORT = 68;
-    private final Integer txPORT = 67;
-    private final DatagramSocket rxSock;
-    private final DatagramSocket txSock;
+    private final Integer _rxPort = 49168;
+    private final Integer _txPort = 49167;
+    private final DatagramSocket _rxSock;
+    private final DatagramSocket _txSock;
     private ByteArrayInputStream bis;
     private ObjectInputStream ois;
     private ByteArrayOutputStream bos ;
@@ -40,9 +40,10 @@ public class DhcpServer extends Thread {
     private  Map<String, Boolean> ipPool;
     private byte[] buff = new byte[1024];
     
-    public DhcpServer(short[] subnetmask, short[] ipstart, short[] ipstop) throws SocketException, IOException{
-        rxSock = new DatagramSocket(rxPORT);
-        txSock = new DatagramSocket(txPORT);
+    public DhcpServer(IPv4 lanIp, short[] subnetmask, short[] ipstart, short[] ipstop) throws SocketException, IOException{
+        mLanIp = lanIp;
+        _rxSock = new DatagramSocket(_rxPort);
+        _txSock = new DatagramSocket(_txPort);
         leasesTable = new HashMap();
         //verifca daca ipstart si ipstop sunt din acelsi subnet
         ipPool = new TreeMap();
@@ -118,7 +119,8 @@ public class DhcpServer extends Thread {
             DatagramPacket packet = new DatagramPacket(buff, buff.length);
             try {
                 //Citeste de pe PORTUL 68 de la client (DHCPDISCOVER, DHCPREQUEST)
-                rxSock.receive(packet);
+                _rxSock.receive(packet);
+                //TODO: memoreaza intr-o strucutra Porturile Clientilor
                 Object deserializedObject = ois.readObject(); 
                 //IPv4 allocatedIP  = null;
                 IPv4 validIP = null;
@@ -148,7 +150,7 @@ public class DhcpServer extends Thread {
 
                      // send DHCPOFFER pe port 67 
                      DatagramPacket sendPacketOffer = new DatagramPacket(buff, buff.length, packet.getAddress(), packet.getPort());
-                     txSock.send(sendPacketOffer);
+                     _txSock.send(sendPacketOffer);
                 }else if(deserializedObject instanceof DhcpRequest){
                     //inainte e ACK OK -> pune in leasesTable ce s-a oferit;marcheaza in ipPool ca acel ip e folosit
                     if(validIP != null){
@@ -165,7 +167,7 @@ public class DhcpServer extends Thread {
                     buff = bos.toByteArray();
                     // send pe portul 67
                     DatagramPacket sendPacketAck = new DatagramPacket(buff, buff.length, packet.getAddress(), packet.getPort());
-                    txSock.send(sendPacketAck);
+                    _txSock.send(sendPacketAck);
                 }
                 //TODO: handle dhcp decline (mai tarziu) (trebuie implementare ARP
             } catch (IOException ex) {
