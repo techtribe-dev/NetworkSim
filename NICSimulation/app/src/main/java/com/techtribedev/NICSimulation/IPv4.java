@@ -4,11 +4,13 @@
  */
 package com.techtribedev.NICSimulation;
 
+import java.io.Serializable;
+
 /**
  *
  * @author asimion
  */
-public class IPv4 {
+public class IPv4 implements Serializable {
     private short[] mIp;
     private short[] mMask;
     

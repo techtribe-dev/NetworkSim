@@ -3,19 +3,30 @@
  */
 package com.techtribedev.NICSimulation;
 
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 public class App {
 
     public static void main(String[] args) {
-        Router r0 = new Router("Microtik", 10);
-        Router r1 = new Router("Cisco",10);
-        UtpWire w0 = new UtpWire(r1.getOutWan(), r0.getInWan());
+        /*CODE*/
         
-        int CODE = r1.connectPorts(w0);
-        System.out.println("Finished with code: " + CODE);
-       
-
-        r0.displayRoutersInfo();
-        r1.displayRoutersInfo();
-       
+        try {
+            Router routerGwDhcp = new Router("cisco", 4, true);
+            Router routerSlave0 = new Router("microtik", 4, false);
+            Router routerSlave1 = new Router("microtik", 4, false);
+            UtpWire uw0 = new UtpWire(routerSlave0.getLan1(), routerGwDhcp.getLan1());
+            UtpWire uw1 = new UtpWire(routerSlave1.getLan1(), routerGwDhcp.getLan2() );
+            routerGwDhcp.connectPorts(uw0);
+            routerSlave0.displayRoutersInfo();
+            System.out.println();
+            routerGwDhcp.connectPorts(uw1);
+            routerSlave1.displayRoutersInfo();
+        } catch (IOException ex) {
+            Logger.getLogger(App.class.getName()).log(Level.SEVERE, null, ex);
+        }
+            
+        
     }
 }
