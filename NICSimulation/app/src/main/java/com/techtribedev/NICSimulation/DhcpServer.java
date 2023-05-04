@@ -18,8 +18,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -109,8 +107,30 @@ public class DhcpServer extends Thread {
         }        
         return check;
     }
+
+    public IPv4 printLeases(){
+        IPv4 valid = null;
+        Set setIP = leasesTable.entrySet();
+        Iterator it = setIP.iterator();
+        while(it.hasNext()){
+            HashMap.Entry ip = (HashMap.Entry)it.next();
+            System.out.println(ip.getKey() + " " + ip.getValue());
+        }
+        return valid;
+    } 
     
-    IPv4 findFirstIPValid(){
+    public IPv4 printLanPool(){
+        IPv4 valid = null;
+        Set setIP = ipPool.entrySet();
+        Iterator it = setIP.iterator();
+        while(it.hasNext()){
+            Map.Entry ip = (Map.Entry)it.next();
+            System.out.println(ip.getKey() + " - " + ip.getValue());
+        }
+        return valid;
+    } 
+    
+    public IPv4 findFirstIPValid(){
         IPv4 valid = null;
         Set setIP = ipPool.entrySet();
         Iterator it = setIP.iterator();
@@ -118,18 +138,20 @@ public class DhcpServer extends Thread {
             Map.Entry ip = (Map.Entry)it.next();
             if(ip.getValue().equals(true)){
                 valid = new IPv4(toShortArr((String) ip.getKey()), mSubnetmask);
+                break;
             }
         }
         return valid;
     } 
     
     
+    @Override
     public synchronized void run(){
-        System.out.println("->Start Server!");
+        System.out.println("->Server Start!");
         running = true;
       
         while(running){
-            System.out.println("#Server:....");
+            System.out.println("-->Server:....");
             try {
                 byte[] buffdisc = new byte[1024];
                 
@@ -175,6 +197,12 @@ public class DhcpServer extends Thread {
                         dhcpmessage = new DhcpOffer(dhcpDiscover.getClientMac(), validIP, mLanIp);
                         System.out.println("*    Server: am gasit un Ip Valid pt a crea dhcp offer");                        
                     }
+                      //inchid bos si oos vechi
+                      bos.close();
+                      oos.close();
+                      //deschid noi bos si oos
+                      bos = new ByteArrayOutputStream();
+                      oos = new ObjectOutputStream(bos);
                       // Serializarea obiectului în fluxul de bytes
                       oos.writeObject(dhcpmessage);
                       oos.flush();
@@ -182,7 +210,7 @@ public class DhcpServer extends Thread {
                      // send DHCPOFFER
                      DatagramPacket sendPacketOffer = new DatagramPacket(buffoffer, buffoffer.length, recvDiscover.getAddress(), __txClientPort-1);
                      _txSock.send(sendPacketOffer);
-                     System.out.println("190*Server: Trimis DHCPOFFER pe " + (__txClientPort-1));
+                     System.out.println("*Server: Trimis DHCPOFFER  ");
 
                      // mem rxClientPort
                      _rxClientMapPort.put(dhcpDiscover.getClientMac(), __txClientPort-1);
@@ -202,7 +230,7 @@ public class DhcpServer extends Thread {
                   ois = new ObjectInputStream(bis);
                   objRecv = ois.readObject();
                 }
-                System.out.println("208*Server: primit DHCPREQUEST " + objRecv.toString());
+                System.out.println("*Server: primit DHCPREQUEST " + objRecv.toString());
                 __txClientPort = recvRequest.getPort();
 
                 validIP = null;
@@ -232,16 +260,17 @@ public class DhcpServer extends Thread {
                     DatagramPacket sendAck = new DatagramPacket(buffack, buffack.length, recvRequest.getAddress(), __txClientPort-1);
                     _txSock.send(sendAck);
                     //deserializedObject = null;
-                    running = false;
+                    //running = false;
                 } 
                 
                 //TODO: handle dhcp decline (mai tarziu) (trebuie implementare ARP
             } catch (IOException | ClassNotFoundException ex) {
                 Logger.getLogger(DhcpServer.class.getName()).log(Level.SEVERE, null, ex);
             } 
+            
         }
-        _rxSock.close();
-        _txSock.close();
+        //_rxSock.close();
+        //_txSock.close();
     }
     
     //TODO: "destructor" unde inchizi ti bis, ois, bos, oos 

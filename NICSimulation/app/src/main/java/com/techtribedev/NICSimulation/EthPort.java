@@ -5,6 +5,9 @@
 package com.techtribedev.NICSimulation;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 /**
  *
@@ -20,12 +23,14 @@ public class EthPort implements PhyEth {
     private IPv4 mIP;
     private IPv4 mGw;
     private DhcpClient dhclient;
+    private final static String PREFIX_MAC = "00:16:3e0";
+    private static final List<String> generatedAddresses = new ArrayList<>();
     //pentru test 
     private static Integer lastByteMac = 10;
     
     public EthPort(){
         mEthName = "eth0";
-        mMAC = "aa:bb:cc:dd:ee:00:66";
+        mMAC = generateMac();
         mComm = TypeComm.HALF_DUPLEX;
         mBand = TypeBandwidth.FAST_ETHERNET;
         mLink = LinkState.DOWN;
@@ -34,13 +39,12 @@ public class EthPort implements PhyEth {
 
     public EthPort(String name, String typeC, String typeB, String typeN) throws IOException{
         mEthName = name;
-        mMAC = "aa:bb:cc:dd:ee:00:"+ lastByteMac.toString();
+        mMAC = generateMac();
         mComm = (typeC.equals("HALF_DUPLEX"))? TypeComm.HALF_DUPLEX : TypeComm.FULL_DUPLEX;
         mBand = (typeC.equals("GIGABIT"))? TypeBandwidth.GIGABIT : TypeBandwidth.FAST_ETHERNET;
         mNet = (typeN.equals("WAN"))? TypeNet.WAN : TypeNet.LAN;
         mLink = LinkState.DOWN;
         dhclient = new DhcpClient(mMAC);
-        lastByteMac = lastByteMac > 99 ? 10 : lastByteMac++;
     }
     
 
@@ -70,6 +74,25 @@ public class EthPort implements PhyEth {
     public String getLinkStatus(){
         //System.out.println("Link is " + mLink.toString());
         return mLink.toString();
+    }
+    
+    private static String generateRandomHexByte() {
+        Random random = new Random();
+        int randomByte = random.nextInt(256);
+        return String.format("%02x", randomByte);
+    }
+    
+    private static String generateMac(){
+        String address;
+        do {
+            address = PREFIX_MAC + ":" + generateRandomHexByte() + ":" + generateRandomHexByte() + ":" + generateRandomHexByte();
+        } while (generatedAddresses.contains(address));
+        generatedAddresses.add(address);
+        return address;       
+    }
+    
+    public void setMac(){
+        mMAC = generateMac();
     }
     
     public TypeComm getTC(){

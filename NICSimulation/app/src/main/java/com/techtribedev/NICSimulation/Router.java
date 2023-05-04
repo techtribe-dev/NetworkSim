@@ -7,7 +7,6 @@ package com.techtribedev.NICSimulation;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
-import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,13 +21,11 @@ public class Router {
     private ArrayList<EthPort> mPortsLAN;
     private String mNameVendor;
     private Integer mID;
-    //TODO: generator de MAC pt fiecare port
     //server DHPC
     private Semaphore serverSemaphore;
     private DhcpServer dhcpServer;
     private boolean enableDhcpServer;
     //TODO: GW (+ MASK ) care zice pentru mInPortWAN;
-    //TODO: GW pt LAN;
     private IPv4 gwLan;//(defapt InputOutput din/Catre LAN)
     
     public Router() throws IOException {
@@ -57,6 +54,8 @@ public class Router {
         enableDhcpServer = runDhcpServer;
         if(enableDhcpServer){
             serverSemaphore = new Semaphore(0);//semafor pentru singcronizare
+            dhcpServer = new DhcpServer(gwLan, new short[]{255,255,0,0}, new short[]{10,0,128,15}, new short[]{10,0,128,30}, serverSemaphore);//hardcodat pool-ul de adrese din Lan
+            dhcpServer.start();
         }
     }
 
@@ -69,14 +68,21 @@ public class Router {
         //System.out.println(mOutPortWAN.getName() +"(eth wan OUT): " + "link is " + mOutPortWAN.getLinkStatus() + " IP:" + oipw);
         System.out.println("LAN:");
         for(EthPort ep : mPortsLAN){
-            if(ep.getIPv4() != null) System.out.println(ep.getName() + ": link is " + ep.getLinkStatus() + " IP: " + ep.getIPv4().toStringIP());
-            if(ep.getIPv4() == null) System.out.println(ep.getName() + ": link is " + ep.getLinkStatus() + " IP: ");
+            if(ep.getIPv4() != null){
+                String info = ep.getName() + ": link is "    + ep.getLinkStatus() + 
+                                                " ether: "   + ep.getMAC() + 
+                                                " inet: "    + ep.getIPv4().toStringIP() + 
+                                                " netmask: " + ep.getIPv4().toStringMask();
+                System.out.println(info);
+            }
+            if(ep.getIPv4() == null) System.out.println(ep.getName() + ": link is " + ep.getLinkStatus() + " ether: " + ep.getMAC());
         }
     }
 
     public EthPort getInWan() {
         return mInPortWAN;
     }
+    
     //pt Test
     public EthPort getLan1(){
         return mPortsLAN.get(0);//primul port LAN
@@ -109,14 +115,13 @@ public class Router {
                 } else if (lp.getNetAsString().equals("LAN") && rp.getNetAsString().equals("LAN")){
                     if(enableDhcpServer == true){
                         //while(dhcpServer.getState() == Thread.State.TERMINATED){}
-                        dhcpServer = new DhcpServer(gwLan, new short[]{255,255,0,0}, new short[]{10,0,128,15}, new short[]{10,0,128,30}, serverSemaphore);//hardcodat pool-ul de adrese din Lan
                         try {
-                            dhcpServer.start();
+                            //dhcpServer.start();
                             Thread.sleep(1000);
                             lp.getDhcpClient().setSemaphore(serverSemaphore);
                             lp.getDhcpClient().start();
                             
-                            dhcpServer.join();
+                            //dhcpServer.join();
                             lp.getDhcpClient().join();
                             
                         } catch (InterruptedException ex) {
@@ -124,12 +129,11 @@ public class Router {
                         } 
                     }
                     
-                      
                     if(lp.getDhcpClient().getIsRunning() == false){
                         lp.setIPv4(lp.getDhcpClient().getIp());
                         lp.setGwIp(gwLan);
                         rp.setIPv4(lp.getDhcpClient().getIp());
-                        rp.setGwIp(gwLan);                    
+                        rp.setGwIp(gwLan);
                     }
                     r = 200;//OK
                 } else{

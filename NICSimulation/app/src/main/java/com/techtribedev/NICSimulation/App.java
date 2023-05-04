@@ -10,8 +10,6 @@ import java.util.logging.Logger;
 public class App {
 
     public static void main(String[] args) {
-        /*CODE*/
-        
         try {
             Router routerGwDhcp = new Router("cisco", 4, true);
             Router routerSlave0 = new Router("microtik", 4, false);
@@ -23,6 +21,8 @@ public class App {
             System.out.println();
             routerGwDhcp.connectPorts(uw1);
             routerSlave1.displayRoutersInfo();
+            System.out.println();
+            routerGwDhcp.displayRoutersInfo();
         } catch (IOException ex) {
             Logger.getLogger(App.class.getName()).log(Level.SEVERE, null, ex);
         }
