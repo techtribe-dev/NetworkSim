@@ -11,6 +11,7 @@ public class App {
 
     public static void main(String[] args) {
         try {
+            DebugMode.isDebugModeEnabled = true;
             Router routerGwDhcp = new Router("cisco", 4, true);
             Router routerSlave0 = new Router("microtik", 4, false);
             Router routerSlave1 = new Router("microtik", 4, false);

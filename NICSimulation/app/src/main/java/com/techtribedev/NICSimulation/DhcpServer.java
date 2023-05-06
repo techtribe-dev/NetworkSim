@@ -45,28 +45,30 @@ public class DhcpServer extends Thread {
     private Semaphore serverSemaphore;
     private byte[] buff;
     
-    public DhcpServer(IPv4 lanIp, short[] subnetmask, short[] ipstart, short[] ipstop, Semaphore sem ) throws SocketException, IOException{
+    public DhcpServer(IPv4 lanIp, short[] subnetmask, short[] ipstart, short[] ipstop, Semaphore semaphore) throws SocketException, IOException{
         mLanIp = lanIp;
         _rxSock = new DatagramSocket(_rxPort);
         _txSock = new DatagramSocket(_txPort);
         leasesTable = new HashMap();
         //TODO: verifca daca ipstart si ipstop sunt din acelsi subnet
+        //Create an Pool with all the IPs allowed for our LAN
         ipPool = new TreeMap();
         for(short s = ipstart[3]; s <= ipstop[3]; s++){
             short[] newIp = new short[]{ipstart[0], ipstart[1], ipstart[2], s};
-            ipPool.put(toString(newIp), true);//true inseamna liber de utilizat
+            ipPool.put(toString(newIp), true);//true means free to use
         }
         mSubnetmask = subnetmask;
         
-        //Monitorizare Porturi Clienti
+        //Monitoring Clients Ports
         _rxClientMapPort = new HashMap();
         _txClientMapPort = new HashMap();
         
-        //pentru serializare si deserializare
+        //serialization
         buff = new byte[1024];
         bos = new ByteArrayOutputStream();
         oos = new ObjectOutputStream(bos);
-        serverSemaphore = sem;
+        //sync
+        serverSemaphore = semaphore;
     }
     
     private String toString(short[] X){
@@ -100,7 +102,7 @@ public class DhcpServer extends Thread {
             
             IPv4 lTIP = (IPv4)lT.getValue();
             if(lTIP.toStringIP().equals(dIP.toStringIP())){
-                //am gasit deja IP-ul cerut
+                //IP valid finded
                 check = true; 
                 break;
             }
@@ -147,15 +149,15 @@ public class DhcpServer extends Thread {
     
     @Override
     public synchronized void run(){
-        System.out.println("->Server Start!");
+        DebugMode.log("->Server Start!");
         running = true;
       
         while(running){
-            System.out.println("-->Server:....");
+            DebugMode.log("-->Server:....");
             try {
                 byte[] buffdisc = new byte[1024];
                 
-                //Ascult DHCPDISCOVER
+                //listen DHCPDISCOVER
                 serverSemaphore.release();
                 DatagramPacket recvDiscover = new DatagramPacket(buffdisc, buffdisc.length);
                 Object objRecv = null;
@@ -165,77 +167,77 @@ public class DhcpServer extends Thread {
                   ois = new ObjectInputStream(bis);
                   objRecv = ois.readObject();
                 }
-                System.out.println("*Server: primit DHCPDISCOVER " + objRecv.toString());
+                DebugMode.log("*Server: primit DHCPDISCOVER " + objRecv.toString());
                 Integer __txClientPort = recvDiscover.getPort();
                 
-                //Generez DHCPOFFER si TRIMIT
+                //Create DHCPOFFER then send
                 IPv4 validIP = null;
                 if (objRecv instanceof DhcpDiscover ) {
-                    System.out.println("*Server:Create dhcpOffer ");
+                    DebugMode.log("*Server:Create dhcpOffer ");
                     DhcpDiscover dhcpDiscover = (DhcpDiscover) objRecv;
-                    // genereaza DHPCPOFFER
+                    // Create DHPCPOFFER
                     DhcpOffer dhcpmessage = null;
                     if(dhcpDiscover.getIP() != null){
-                        System.out.println("*Server: DhcpDiscovered IP NOT NULL");
+                        DebugMode.log("*Server: DhcpDiscovered IP NOT NULL");
                         IPv4 dip = dhcpDiscover.getIP();
                         boolean isInLeases = checkLeasesTable(dip);
                         if(isInLeases){
-                            //DHCPOFFER CU IP valid;
+                            //DHCPOFFER with valid IP;
                             validIP = findFirstIPValid();
                             dhcpmessage = new DhcpOffer(dhcpDiscover.getClientMac(), validIP, mLanIp);
-                            System.out.println("*    Server: am gasit un Ip Valid pt a crea dhcp offer");
+                            DebugMode.log("*    Server: am gasit un Ip Valid pt a crea dhcp offer");
                         } else {
                             validIP = dip;
                             //DHCPOFFER cu IP-ul cerut de client
                             dhcpmessage = new DhcpOffer(dhcpDiscover.getClientMac(), dip, mLanIp);
-                            System.out.println("174*    Server: ip-ul cerut in discover este bun! Il trimit in dhcp offer!");
+                            DebugMode.log("174*    Server: ip-ul cerut in discover este bun! Il trimit in dhcp offer!");
                         }
                     } else {
-                        System.out.println("*Server: DhcpDiscovered IP NULL");
-                        //DHCPOFFER CU IP valid;
+                        DebugMode.log("*Server: DhcpDiscovered IP NULL");
+                        //DHCPOFFER with valid IP;
                         validIP = findFirstIPValid();
                         dhcpmessage = new DhcpOffer(dhcpDiscover.getClientMac(), validIP, mLanIp);
-                        System.out.println("*    Server: am gasit un Ip Valid pt a crea dhcp offer");                        
+                        DebugMode.log("*    Server: am gasit un Ip Valid pt a crea dhcp offer");                        
                     }
-                      //inchid bos si oos vechi
+                      //colse bos and oos 
                       bos.close();
                       oos.close();
-                      //deschid noi bos si oos
+                      //create new bos and oos
                       bos = new ByteArrayOutputStream();
                       oos = new ObjectOutputStream(bos);
-                      // Serializarea obiectului în fluxul de bytes
+                      // Serialization
                       oos.writeObject(dhcpmessage);
                       oos.flush();
                       byte[] buffoffer = bos.toByteArray();
-                     // send DHCPOFFER
+                     // Create Datagram with bytes of  DHCPOFFER
                      DatagramPacket sendPacketOffer = new DatagramPacket(buffoffer, buffoffer.length, recvDiscover.getAddress(), __txClientPort-1);
+                     // Send Datagram
                      _txSock.send(sendPacketOffer);
-                     System.out.println("*Server: Trimis DHCPOFFER  ");
+                     DebugMode.log("*Server: Trimis DHCPOFFER  ");
 
                      // mem rxClientPort
                      _rxClientMapPort.put(dhcpDiscover.getClientMac(), __txClientPort-1);
-                     //deserializedObject = null;
                 }
                 
                 
-                //ASCULT DHCPREQUES
+                //Listen DHCPREQUES
                 serverSemaphore.release();
                 byte[] buffreq = new byte[1024];
                 DatagramPacket recvRequest = new DatagramPacket(buffreq, buffreq.length);
                 objRecv = null;
                 
                 while(objRecv == null){
-                  _rxSock.receive(recvRequest);//ascult
+                  _rxSock.receive(recvRequest);//listen
                   bis = new ByteArrayInputStream(recvRequest.getData());
                   ois = new ObjectInputStream(bis);
                   objRecv = ois.readObject();
                 }
-                System.out.println("*Server: primit DHCPREQUEST " + objRecv.toString());
+                DebugMode.log("*Server: primit DHCPREQUEST " + objRecv.toString());
                 __txClientPort = recvRequest.getPort();
 
                 validIP = null;
                 if(objRecv instanceof DhcpRequest){
-                    //inainte e ACK OK -> pune in leasesTable ce s-a oferit;marcheaza in ipPool ca acel ip e folosit
+                    //before ACK OK -> put in leasesTable the offer;mark in ipPool with false
                     DhcpRequest dhcpRequest = (DhcpRequest) objRecv;
                     validIP = dhcpRequest.getCIP();
                     if(validIP != null){
@@ -244,34 +246,29 @@ public class DhcpServer extends Thread {
                     }else{
                         System.err.println("$$ validIP=NULL, DEBUG!");
                     }
-                    // genereaza DHCPACK
+                    // Create DHCPACK
                     DhcpAck dhcpAck = new DhcpAck();
                     
-                    //inchid bos si oos vechi
+                    //close bos and oos v
                     bos.close();
                     oos.close();
-                    //Pt serializarea obiectului în fluxul de bytes dechid noi bos si oos
+                    //create new bos and oos
                     bos = new ByteArrayOutputStream();
                     oos = new ObjectOutputStream(bos);
                     oos.writeObject(dhcpAck);
                     oos.flush();
                     byte[] buffack = bos.toByteArray();
-                    // send pe portul txServer catre portul rxClient
+                    //Create Datagram with bytes of DHCPACK 
                     DatagramPacket sendAck = new DatagramPacket(buffack, buffack.length, recvRequest.getAddress(), __txClientPort-1);
+                    // send on txPort of the server to  rxPort of the client
                     _txSock.send(sendAck);
-                    //deserializedObject = null;
-                    //running = false;
                 } 
                 
-                //TODO: handle dhcp decline (mai tarziu) (trebuie implementare ARP
+                //TODO: handle dhcp decline  ( implement ARP)
             } catch (IOException | ClassNotFoundException ex) {
                 Logger.getLogger(DhcpServer.class.getName()).log(Level.SEVERE, null, ex);
             } 
             
         }
-        //_rxSock.close();
-        //_txSock.close();
     }
-    
-    //TODO: "destructor" unde inchizi ti bis, ois, bos, oos 
 }

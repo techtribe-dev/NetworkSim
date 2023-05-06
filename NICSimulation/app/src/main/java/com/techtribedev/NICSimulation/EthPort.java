@@ -23,10 +23,8 @@ public class EthPort implements PhyEth {
     private IPv4 mIP;
     private IPv4 mGw;
     private DhcpClient dhclient;
-    private final static String PREFIX_MAC = "00:16:3e0";
+    private final static String PREFIX_MAC = "00:16:3e";
     private static final List<String> generatedAddresses = new ArrayList<>();
-    //pentru test 
-    private static Integer lastByteMac = 10;
     
     public EthPort(){
         mEthName = "eth0";
@@ -35,6 +33,7 @@ public class EthPort implements PhyEth {
         mBand = TypeBandwidth.FAST_ETHERNET;
         mLink = LinkState.DOWN;
         mNet  = TypeNet.LAN;
+        dhclient = null;
     }
 
     public EthPort(String name, String typeC, String typeB, String typeN) throws IOException{
@@ -55,13 +54,13 @@ public class EthPort implements PhyEth {
     @Override
     public void setLinkUp(){
         mLink = LinkState.UP;
-        System.out.println("Link is UP!");
+        DebugMode.log("Link is UP!");
     }
 
     @Override
     public void setLinkDown(){
         mLink = LinkState.DOWN;
-        System.out.println("Link is Down");
+        DebugMode.log("Link is Down");
     }
 
     public void setIPv4(IPv4 _ip){

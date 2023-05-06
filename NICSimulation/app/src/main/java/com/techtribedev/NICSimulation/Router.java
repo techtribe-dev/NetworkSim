@@ -100,7 +100,7 @@ public class Router {
     public int connectPorts(UtpWire wire) throws IOException{
         int r = wire.connect();
         if(r != 404){
-            //TODO: negociere viteza de transmisie intre cele doua placi -- pe viitor
+            //TODO: transmission speed negotiation between the two Devices -- soon
             boolean ret = (wire.getPortRight().getIPv4() == null && wire.getPortLeft().getIPv4() == null);
             if(ret){
                 EthPort lp = wire.getPortLeft();

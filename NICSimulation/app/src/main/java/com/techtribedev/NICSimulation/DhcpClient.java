@@ -12,8 +12,6 @@ import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -26,7 +24,7 @@ public class DhcpClient extends Thread{
     private final static String SERVER_ADDRESS = "localhost";
     private final static Integer SERVER_RX_PORT = 49168;
     private final static Integer SERVER_TX_PORT = 49167;
-    //49169 și 65535 --valori porturi pentru clienti
+    //range [49169 and 65535] - ports value for each client
     private static Integer cntRxPort = 49268;
     private static Integer cntTxPort = 49269;
     private Integer _rxPort;
@@ -41,17 +39,14 @@ public class DhcpClient extends Thread{
     private ObjectInputStream ois;
     private ByteArrayOutputStream bos ;
     private ObjectOutputStream oos;
-    //private byte[] buff = new byte[1024]; 
     boolean running_dhclient;
-    private CyclicBarrier barrier ;//= new CyclicBarrier(1);
     private Semaphore serverSemaphore;
     
     public DhcpClient(String mac) throws IOException {
         //set ports 
         _rxPort = cntRxPort;
         _txPort = cntTxPort;
-        //System.out.println(_rxPort + " " + _txPort);
-        //pentru a Trimite Pachete Datagram
+        //create UDP Sockets 
         _rxSock = new DatagramSocket(_rxPort);
         _txSock = new DatagramSocket(_txPort);
         _serverAddr = InetAddress.getByName(SERVER_ADDRESS);
@@ -60,43 +55,46 @@ public class DhcpClient extends Thread{
         mIp = null;
         mMac = mac;
         
-        //pentru serializare si deserializare
+        //for serialization 
         bos = new ByteArrayOutputStream();
         oos = new ObjectOutputStream(bos);
         
-        //cnt ports  pentru noul client dhcp
+        //cnt ports for new dhcp client
         cntRxPort = cntRxPort + 2;
         cntTxPort = cntTxPort + 2;
         
+        //start dhclient
         running_dhclient = true;
     }
     
     public void getRxTxPort(){
-        System.out.println(_rxPort.toString() + "  "  + _txPort.toString());
+        DebugMode.log(_rxPort.toString() + "  "  + _txPort.toString());
     }
     
-    public void setBarrier(CyclicBarrier cb){
-        barrier = cb;
-    }
     public void setSemaphore(Semaphore semaphore){
      serverSemaphore = semaphore;
     }
+    
+    @Override
     public synchronized void run(){
-         System.out.println("->Client Start!");
+         DebugMode.log("->Client Start!");
          IPv4 tmpIpOffered = null;
          IPv4 tmpGwOffered = null;
          
         try {
+            //Create DHCPDISCOVER 
             DhcpDiscover dhcpmessage = new DhcpDiscover(mIp, mMac);
+            //Serialize DhcpDiscover
             oos.writeObject(dhcpmessage);
             oos.flush();
             byte[] buffdisc = bos.toByteArray();
+            //Create Datagram with bytes of DhcpDiscover
             DatagramPacket sendDiscover = new DatagramPacket(buffdisc, buffdisc.length, _serverAddr, SERVER_RX_PORT);
-            
+            //Send the Datagram
             _txSock.send(sendDiscover);
-            System.out.println("@Client: DHCPDISCOVER sended");
+            DebugMode.log("@Client: DHCPDISCOVER sent");
             
-            //Astept DHCPOFFER
+            //wait DHCPOFFER
             byte[] buffoffer = new byte[1024];
             DatagramPacket recvOffer = new DatagramPacket(buffoffer, buffoffer.length, _serverAddr, SERVER_TX_PORT);
             Object objRecv = null;
@@ -108,31 +106,32 @@ public class DhcpClient extends Thread{
                 ois = new ObjectInputStream(bis);
                 objRecv = ois.readObject();
             }
-            System.out.println("@Client: DHCPOFFER received " + objRecv.toString());
+            DebugMode.log("@Client: DHCPOFFER received " + objRecv.toString());
             
-            //Citesc din Offer
+            //Read from DHCPOFFER
             DhcpOffer dhcpoffer = (DhcpOffer)objRecv;
             tmpIpOffered = dhcpoffer.getCIP();
             tmpGwOffered = dhcpoffer.getSIP();
             
-            //Creez request cu ip-urile din offer + trimit catre server
+            //Create DhcpRequest with info from DhcpOffer
             DhcpRequest dhcpreq = new DhcpRequest(tmpIpOffered, tmpGwOffered);
             
-            //System.out.println(dhcpreq.toString());
+            //close bos and oos to remove tmp bytes from pipe
             bos.close();
             oos.close();
+            //open new bos and oos 
             bos = new ByteArrayOutputStream();
             oos = new ObjectOutputStream(bos);
             oos.writeObject(dhcpreq);
             oos.flush();
             byte[] buffreq = bos.toByteArray();
-
-            //System.out.println(buffreq.toString());
+            //Create Datagram with bytes of DhcpRequest
             DatagramPacket sendRequest = new DatagramPacket(buffreq, buffreq.length, _serverAddr, SERVER_RX_PORT);
+            //Send the Datagram
             _txSock.send(sendRequest);
-            System.out.println("@Client: DHCPREQUEST sended");
+            DebugMode.log("@Client: DHCPREQUEST sent");
             
-             //Astept DHCPACK
+            //wait DHCPACK
             byte[] buffack = new byte[1024];
             DatagramPacket recvAck = new DatagramPacket(buffack, buffack.length, _serverAddr, SERVER_TX_PORT);
             objRecv = null;
@@ -143,12 +142,12 @@ public class DhcpClient extends Thread{
                 ois = new ObjectInputStream(bis);
                 objRecv = ois.readObject();
             }
-            System.out.println("@Client: DHCPACK received " + objRecv.toString()); 
+            DebugMode.log("@Client: DHCPACK received " + objRecv.toString()); 
             mIp = tmpIpOffered;
             mGwIp = tmpGwOffered;
             
-            System.out.println("@Client: Bye Bye!");
-            //Testat cu arp si apoi dhcpdecline daca nu unic ip-ul 
+            DebugMode.log("@Client: Bye Bye!");
+            //TODO: Implement ARP and then: DHCPDECLINE if not we have an uniq IPv4 in our network 
         } catch (IOException | ClassNotFoundException | InterruptedException ex) {
             Logger.getLogger(DhcpClient.class.getName()).log(Level.SEVERE, null, ex);
         }
