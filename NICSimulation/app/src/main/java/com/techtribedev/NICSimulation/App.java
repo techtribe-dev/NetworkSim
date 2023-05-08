@@ -13,17 +13,17 @@ public class App {
         try {
             DebugMode.isDebugModeEnabled = true;
             Router routerGwDhcp = new Router("cisco", 4, true);
-            Router routerSlave0 = new Router("microtik", 4, false);
-            Router routerSlave1 = new Router("microtik", 4, false);
-            UtpWire uw0 = new UtpWire(routerSlave0.getLan1(), routerGwDhcp.getLan1());
-            UtpWire uw1 = new UtpWire(routerSlave1.getLan1(), routerGwDhcp.getLan2() );
+            Computer computer1 = new Computer(true, "synopsis");
+            Computer computer2 = new Computer(true, "cadence");
+            UtpWire uw0 = new UtpWire(computer1.getEthPort(), routerGwDhcp.getLan1());
+            UtpWire uw1 = new UtpWire(computer2.getEthPort(), routerGwDhcp.getLan2() );
             routerGwDhcp.connectPorts(uw0);
-            routerSlave0.displayRoutersInfo();
             System.out.println();
             routerGwDhcp.connectPorts(uw1);
-            routerSlave1.displayRoutersInfo();
             System.out.println();
             routerGwDhcp.displayRoutersInfo();
+            computer1.displayInfo();
+            computer2.displayInfo();
         } catch (IOException ex) {
             Logger.getLogger(App.class.getName()).log(Level.SEVERE, null, ex);
         }
