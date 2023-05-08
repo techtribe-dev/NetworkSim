@@ -5,6 +5,7 @@
 package com.techtribedev.NICSimulation;
 
 import java.io.IOException;
+import java.net.DatagramSocket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -24,6 +25,10 @@ public class EthPort implements PhyEth {
     private IPv4 mGw;
     private DhcpClient dhclient;
     private final static String PREFIX_MAC = "00:16:3e";
+    private static Integer cntRxPort = 49268;
+    private static Integer cntTxPort = 49269;
+    private DatagramSocket  _rxSock;
+    private DatagramSocket  _txSock; 
     private static final List<String> generatedAddresses = new ArrayList<>();
     
     public EthPort(){
@@ -43,7 +48,12 @@ public class EthPort implements PhyEth {
         mBand = (typeC.equals("GIGABIT"))? TypeBandwidth.GIGABIT : TypeBandwidth.FAST_ETHERNET;
         mNet = (typeN.equals("WAN"))? TypeNet.WAN : TypeNet.LAN;
         mLink = LinkState.DOWN;
-        dhclient = new DhcpClient(mMAC);
+        //create DatagramSocket 
+        _rxSock = new DatagramSocket(cntRxPort);
+        _txSock = new DatagramSocket(cntTxPort);      
+        dhclient = new DhcpClient(mMAC, _rxSock, _txSock);
+        cntRxPort = cntRxPort + 2;
+        cntTxPort = cntTxPort + 2;
     }
     
 

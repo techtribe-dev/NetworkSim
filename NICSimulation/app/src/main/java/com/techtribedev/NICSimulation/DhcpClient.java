@@ -25,8 +25,7 @@ public class DhcpClient extends Thread{
     private final static Integer SERVER_RX_PORT = 49168;
     private final static Integer SERVER_TX_PORT = 49167;
     //range [49169 and 65535] - ports value for each client
-    private static Integer cntRxPort = 49268;
-    private static Integer cntTxPort = 49269;
+
     private Integer _rxPort;
     private Integer _txPort;
     private DatagramSocket  _rxSock;
@@ -42,13 +41,10 @@ public class DhcpClient extends Thread{
     boolean running_dhclient;
     private Semaphore serverSemaphore;
     
-    public DhcpClient(String mac) throws IOException {
-        //set ports 
-        _rxPort = cntRxPort;
-        _txPort = cntTxPort;
-        //create UDP Sockets 
-        _rxSock = new DatagramSocket(_rxPort);
-        _txSock = new DatagramSocket(_txPort);
+    public DhcpClient(String mac, DatagramSocket rxS, DatagramSocket txS) throws IOException {
+        //set ports UDP Sockets 
+        _rxSock = rxS;
+        _txSock = txS;
         _serverAddr = InetAddress.getByName(SERVER_ADDRESS);
         
         //client IPv4       
@@ -58,10 +54,6 @@ public class DhcpClient extends Thread{
         //for serialization 
         bos = new ByteArrayOutputStream();
         oos = new ObjectOutputStream(bos);
-        
-        //cnt ports for new dhcp client
-        cntRxPort = cntRxPort + 2;
-        cntTxPort = cntTxPort + 2;
         
         //start dhclient
         running_dhclient = true;
