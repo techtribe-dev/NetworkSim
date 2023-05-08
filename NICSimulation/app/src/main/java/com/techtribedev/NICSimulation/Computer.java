@@ -10,7 +10,7 @@ import java.io.IOException;
  *
  * @author asimion
  */
-public class Computer extends NIC {
+public class Computer extends NIC implements Runnable {
     
     private final String mHostDomain;
     
@@ -35,4 +35,12 @@ public class Computer extends NIC {
         }
         System.out.println();
     } 
+
+    @Override
+    public void run() {
+        //throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        while(true){
+            
+        }
+    }
 }

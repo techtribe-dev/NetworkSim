@@ -13,8 +13,8 @@ import java.util.ArrayList;
  */
 public class NIC {
     private EthPort ethPort;
-    private ArrayList<String> transmitBuffer; 
-    private ArrayList<String> receiveBuffer;
+    private ArrayList<Byte[]> transmitBuffer; 
+    private ArrayList<Byte[]> receiveBuffer;
     private boolean discoverableDhcp;
     
     public NIC(boolean discDhcp) throws IOException{
