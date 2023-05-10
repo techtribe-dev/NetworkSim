@@ -5,6 +5,7 @@
 package com.techtribedev.NICSimulation;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Random;
 
 /**
@@ -46,5 +47,13 @@ public class IcmpPacket implements Serializable{
             payload[i] = (byte) 0;
         }
         return payload;
+    }
+    
+    public String getHeader(){
+        return mType.toString() + " " + mCode.toString();
+    }
+    
+    public String getFrame(){
+        return mId.toString() + " " + mSeq.toString() + " " + Arrays.toString(mPayload);
     }
 }

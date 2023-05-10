@@ -132,6 +132,14 @@ public class EthPort implements PhyEth {
         return mIP;
     }
     
+    public DatagramSocket getRxSock(){
+        return _rxSock;
+    }
+    
+    public DatagramSocket getTxSock(){
+        return _txSock;
+    }
+    
     public DhcpClient getDhcpClient(){
         return dhclient;
     }

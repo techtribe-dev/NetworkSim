@@ -40,6 +40,7 @@ public class Computer extends NIC implements Runnable {
     public void run() {
         //throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
         while(true){
+            //TODO: asculta sa raspunda la ping adica sa faca echo
             
         }
     }

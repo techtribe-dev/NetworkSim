@@ -9,8 +9,9 @@ import java.util.logging.Logger;
 
 public class App {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         try {
+            //Simulation.startSimulation = true;
             DebugMode.isDebugModeEnabled = true;
             Router routerGwDhcp = new Router("cisco", 4, true);
             Computer computer1 = new Computer(true, "synopsis");
@@ -20,14 +21,19 @@ public class App {
             routerGwDhcp.connectPorts(uw0);
             System.out.println();
             routerGwDhcp.connectPorts(uw1);
+            
+            //Stop Simulation
+            Thread.sleep(5000);
+            routerGwDhcp.getDhcpServer().stopDhcp();
+            routerGwDhcp.getDhcpServer().interrupt();
+            
             System.out.println();
             routerGwDhcp.displayRoutersInfo();
             computer1.displayInfo();
             computer2.displayInfo();
+            System.exit(0);
         } catch (IOException ex) {
             Logger.getLogger(App.class.getName()).log(Level.SEVERE, null, ex);
         }
-            
-        
     }
 }

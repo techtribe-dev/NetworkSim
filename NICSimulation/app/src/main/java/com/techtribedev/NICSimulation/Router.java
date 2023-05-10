@@ -123,6 +123,7 @@ public class Router {
                             
                             //dhcpServer.join();
                             lp.getDhcpClient().join();
+
                             
                         } catch (InterruptedException ex) {
                             Logger.getLogger(Router.class.getName()).log(Level.SEVERE, null, ex);
@@ -147,5 +148,9 @@ public class Router {
         }
         
         return r;
+    }
+
+    DhcpServer getDhcpServer() {
+        return dhcpServer;
     }
 }

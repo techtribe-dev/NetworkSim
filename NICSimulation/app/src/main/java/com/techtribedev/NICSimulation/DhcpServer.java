@@ -145,6 +145,10 @@ public class DhcpServer extends Thread {
         }
         return valid;
     } 
+    public void stopDhcp() throws InterruptedException{
+        serverSemaphore.acquire();
+        running = false;
+    }
     
     
     @Override
@@ -154,9 +158,9 @@ public class DhcpServer extends Thread {
       
         while(running){
             DebugMode.log("-->Server:....");
+           
             try {
                 byte[] buffdisc = new byte[1024];
-                
                 //listen DHCPDISCOVER
                 serverSemaphore.release();
                 DatagramPacket recvDiscover = new DatagramPacket(buffdisc, buffdisc.length);
