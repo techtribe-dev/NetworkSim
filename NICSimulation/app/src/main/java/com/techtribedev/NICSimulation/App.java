@@ -28,7 +28,6 @@ public class App {
             routerGwDhcp.getDhcpServer().interrupt();
             
             System.out.println();
-            routerGwDhcp.displayRoutersInfo();
             computer1.displayInfo();
             computer2.displayInfo();
             System.exit(0);

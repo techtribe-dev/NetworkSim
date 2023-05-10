@@ -5,6 +5,9 @@
 package com.techtribedev.NICSimulation;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -13,6 +16,7 @@ import java.io.IOException;
 public class Computer extends NIC implements Runnable {
     
     private final String mHostDomain;
+    boolean runningNIC;
     
     public Computer(boolean discDhcp, String host) throws IOException {
         super(discDhcp);
@@ -39,9 +43,19 @@ public class Computer extends NIC implements Runnable {
     @Override
     public void run() {
         //throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-        while(true){
-            //TODO: asculta sa raspunda la ping adica sa faca echo
-            
+        runningNIC = true;
+        while(runningNIC){
+            try {
+                //TODO: asculta sa raspunda la ping adica sa faca echo
+                byte[] buff = new byte[1024];
+                super.recvPacket(buff);
+                DebugMode.log(Arrays.toString(super.getLatestPacket()));
+                
+            } catch (IOException | ClassNotFoundException ex) {
+                Logger.getLogger(Computer.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
     }
+    
+    
 }

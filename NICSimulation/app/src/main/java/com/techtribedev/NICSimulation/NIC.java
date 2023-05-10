@@ -78,4 +78,8 @@ public class NIC {
             DebugMode.log("Received " + objRecv.toString());
             receiveBuffer.add(recvPacket.getData());
     }
+    
+    public byte[] getLatestPacket(){
+        return receiveBuffer.get(receiveBuffer.size() - 1);
+    }
 }
