@@ -9,10 +9,16 @@ package com.techtribedev.NICSimulation;
  * @author asimion
  */
 public class UtpWire {
-   private EthPort portLeft;
+   private EthPort portLeft;//maybe create a class RJ45
    private EthPort portRight;
    private boolean bothPhyConnected;
-
+   
+   public UtpWire(){
+       portLeft = null;
+       portRight = null;
+       bothPhyConnected = false;
+   }  
+   
    public UtpWire(EthPort left, EthPort right){
      portLeft = left;
      portRight = right;
@@ -22,25 +28,25 @@ public class UtpWire {
      
    }
 
-   public void changePortLeft(EthPort port){
+   public void setPortLeft(EthPort port){
      portLeft = port;
    }
 
-   public void changePortRight(EthPort port){
+   public void setPortRight(EthPort port){
      portRight = port;
    }
    
+   public boolean checkConnectionCable(){
+       return bothPhyConnected;
+   } 
+     
    public EthPort getPortLeft() { return portLeft; }
 
    public EthPort getPortRight(){ return portRight; } 
    
-   public boolean checkCable(){
-       return bothPhyConnected;
-   }
-   
    public int connect(){
     //test cablu daca este conectat in ambele capete
-    boolean ret = this.checkCable();
+    boolean ret = this.checkConnectionCable();
     int errorCode =  404;//eroare
     if(ret){
         //set link UP pe fiecare interfata;
