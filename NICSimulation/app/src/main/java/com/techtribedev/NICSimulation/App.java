@@ -3,15 +3,17 @@
  */
 package com.techtribedev.NICSimulation;
 
+/*
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+*/
 
 public class App {
 
     public static void main(String[] args) throws InterruptedException {
-        try {
-            //Simulation.startSimulation = true;
+        /* try {
+           //Simulation.startSimulation = true;
             DebugMode.isDebugModeEnabled = true;
             Router routerGwDhcp = new Router("cisco", 4, true);
             Computer computer1 = new Computer(true, "synopsis");
@@ -34,5 +36,7 @@ public class App {
         } catch (IOException ex) {
             Logger.getLogger(App.class.getName()).log(Level.SEVERE, null, ex);
         }
+        */
     }
+            
 }
